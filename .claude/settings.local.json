@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Kartik/.claude/projects/c--Users-Kartik-Documents-Kartik-EDU-Projects-Internship-new/memory/**)",
+      "Read(//c/Users/Kartik/.claude/plans/**)"
+    ]
+  }
+}
