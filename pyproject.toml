@@ -9,7 +9,7 @@ dependencies = [
     # STT
     "faster-whisper>=1.0.0",
     "soundfile>=0.12.1",
-    "webrtcvad>=2.0.10",
+    "silero-vad>=5.1",
     "noisereduce>=3.0.0",
 
     # TTS — Kokoro-82M via onnx (Phase 0.4 will confirm)
@@ -76,7 +76,7 @@ strict = true
 files = ["core"]
 
 [[tool.mypy.overrides]]
-module = ["faster_whisper", "kokoro_onnx", "mem0", "chromadb", "webrtcvad", "noisereduce", "pygetwindow"]
+module = ["faster_whisper", "kokoro_onnx", "mem0", "chromadb", "silero_vad", "noisereduce", "pygetwindow"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
