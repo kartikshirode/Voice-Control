@@ -1,1 +1,66 @@
 *.claude
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime data — these directories hold user data, never commit
+memory/MEMORY.md
+memory/MEMORY_PRIVATE.md
+memory/budget.json
+memory/sessions/
+memory/pending_consolidation/
+memory/projects/
+memory/custom_modes/*
+!memory/custom_modes/.gitkeep
+
+output/sessions/
+output/*
+!output/.gitkeep
+
+# Phase 0 eval outputs (raw artifacts; results.md is committed)
+evals/clarifying_questions/runs/
+evals/tts_quality/samples/*.wav
+evals/tts_quality/samples/*.mp3
+evals/mem0_eval/data/
+
+# Models (downloaded at runtime)
+models/
+
+# Logs
+*.log
+logs/
