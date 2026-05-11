@@ -10,6 +10,7 @@ Rubric (applied by hand to each response):
 
 Usage:
     python evals/clarifying_questions/runner.py --models gemini-flash gemini-flash-thinking
+    python evals/clarifying_questions/runner.py --models gemini-flash --delay-seconds 8
 
 Requires GEMINI_API_KEY in the environment.
 """
@@ -79,7 +80,7 @@ def is_blocking_provider_error(exc: Exception) -> bool:
     )
 
 
-def run_model(model_name: str, prompts: list[dict]) -> list[dict]:
+def run_model(model_name: str, prompts: list[dict], delay_seconds: float) -> list[dict]:
     api_model = MODEL_MAP[model_name]
     model = genai.GenerativeModel(api_model, system_instruction=SYSTEM_PROMPT)
     results = []
@@ -111,6 +112,8 @@ def run_model(model_name: str, prompts: list[dict]) -> list[dict]:
             }
         )
         print(f"  [{model_name}] {p['id']}: {text[:80]}...")
+        if delay_seconds > 0 and p != prompts[-1]:
+            time.sleep(delay_seconds)
     return results
 
 
@@ -138,6 +141,12 @@ def main() -> None:
         default=["gemini-flash", "gemini-flash-thinking"],
         choices=list(MODEL_MAP.keys()),
     )
+    parser.add_argument(
+        "--delay-seconds",
+        type=float,
+        default=4.0,
+        help="Delay between prompts for free-tier/API quota friendliness.",
+    )
     args = parser.parse_args()
 
     prompts = load_prompts()
@@ -146,7 +155,7 @@ def main() -> None:
     for model in args.models:
         print(f"\n=== Running {model} ===")
         try:
-            results = run_model(model, prompts)
+            results = run_model(model, prompts, delay_seconds=args.delay_seconds)
         except BlockingProviderError as e:
             print(f"[BLOCKED] {e}")
             print("Fix the provider quota/API key issue, then rerun this eval.")
