@@ -59,9 +59,24 @@ MODEL_MAP = {
 }
 
 
+class BlockingProviderError(RuntimeError):
+    """Provider error that makes the rest of the eval run unusable."""
+
+
 def load_prompts() -> list[dict]:
     with PROMPTS_PATH.open() as f:
         return [json.loads(line) for line in f if line.strip()]
+
+
+def is_blocking_provider_error(exc: Exception) -> bool:
+    message = str(exc)
+    return (
+        "quota_limit_value: 0" in message
+        or ("quota_limit_value" in message and 'value: "0"' in message)
+        or "API key not valid" in message
+        or "PERMISSION_DENIED" in message
+        or "SERVICE_DISABLED" in message
+    )
 
 
 def run_model(model_name: str, prompts: list[dict]) -> list[dict]:
@@ -75,6 +90,11 @@ def run_model(model_name: str, prompts: list[dict]) -> list[dict]:
             latency_ms = int((time.monotonic() - t0) * 1000)
             text = resp.text.strip() if resp.text else ""
         except Exception as e:  # noqa: BLE001 — we want every prompt logged
+            if is_blocking_provider_error(e):
+                raise BlockingProviderError(
+                    f"{model_name} cannot run with the current provider setup: "
+                    f"{type(e).__name__}: {e}"
+                ) from e
             text = f"[ERROR] {type(e).__name__}: {e}"
             latency_ms = -1
         results.append(
@@ -125,7 +145,15 @@ def main() -> None:
 
     for model in args.models:
         print(f"\n=== Running {model} ===")
-        results = run_model(model, prompts)
+        try:
+            results = run_model(model, prompts)
+        except BlockingProviderError as e:
+            print(f"[BLOCKED] {e}")
+            print("Fix the provider quota/API key issue, then rerun this eval.")
+            continue
+        if not any(r["latency_ms"] >= 0 for r in results):
+            print("No successful responses; skipping run file.")
+            continue
         out = write_run(model, results)
         print(f"Wrote {len(results)} responses to {out}")
         print("Next: open the .jsonl, fill in `score` (1 / 0.5 / 0) for each row,")
