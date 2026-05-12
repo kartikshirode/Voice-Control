@@ -10,6 +10,9 @@ python evals/clarifying_questions/runner.py --models gemini-flash gemini-flash-t
 
 # slower free-tier run
 python evals/clarifying_questions/runner.py --models gemini-flash gemini-flash-thinking --delay-seconds 8
+
+# resume after quota resets
+python evals/clarifying_questions/runner.py --models gemini-flash --start-id p21 --max-prompts 10 --delay-seconds 8
 ```
 
 Output lands in `evals/clarifying_questions/runs/<model>-<timestamp>.jsonl`.

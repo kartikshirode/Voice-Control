@@ -11,6 +11,7 @@ Rubric (applied by hand to each response):
 Usage:
     python evals/clarifying_questions/runner.py --models gemini-flash gemini-flash-thinking
     python evals/clarifying_questions/runner.py --models gemini-flash --delay-seconds 8
+    python evals/clarifying_questions/runner.py --models gemini-flash --start-id p21 --max-prompts 10
 
 Requires GEMINI_API_KEY in the environment.
 """
@@ -80,6 +81,31 @@ def is_blocking_provider_error(exc: Exception) -> bool:
     )
 
 
+def is_runtime_quota_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return (
+        type(exc).__name__ == "ResourceExhausted"
+        or "resourceexhausted" in message
+        or "exceeded your current quota" in message
+        or "rate_limit_exceeded" in message
+    )
+
+
+def select_prompt_slice(
+    prompts: list[dict], start_id: str | None, max_prompts: int | None
+) -> list[dict]:
+    if start_id:
+        try:
+            start_index = next(i for i, p in enumerate(prompts) if p["id"] == start_id)
+        except StopIteration:
+            valid_ids = ", ".join(p["id"] for p in prompts)
+            sys.exit(f"Unknown --start-id {start_id!r}. Valid ids: {valid_ids}")
+        prompts = prompts[start_index:]
+    if max_prompts is not None:
+        prompts = prompts[:max_prompts]
+    return prompts
+
+
 def run_model(model_name: str, prompts: list[dict], delay_seconds: float) -> list[dict]:
     api_model = MODEL_MAP[model_name]
     model = genai.GenerativeModel(api_model, system_instruction=SYSTEM_PROMPT)
@@ -96,6 +122,12 @@ def run_model(model_name: str, prompts: list[dict], delay_seconds: float) -> lis
                     f"{model_name} cannot run with the current provider setup: "
                     f"{type(e).__name__}: {e}"
                 ) from e
+            if is_runtime_quota_error(e):
+                print(
+                    f"[QUOTA] {model_name} quota exhausted at prompt {p['id']}; "
+                    "stopping this model run and writing prior successes."
+                )
+                break
             text = f"[ERROR] {type(e).__name__}: {e}"
             latency_ms = -1
         results.append(
@@ -147,9 +179,18 @@ def main() -> None:
         default=4.0,
         help="Delay between prompts for free-tier/API quota friendliness.",
     )
+    parser.add_argument(
+        "--start-id",
+        help="Start from a specific prompt id, for example p21.",
+    )
+    parser.add_argument(
+        "--max-prompts",
+        type=int,
+        help="Run at most this many prompts from the selected start point.",
+    )
     args = parser.parse_args()
 
-    prompts = load_prompts()
+    prompts = select_prompt_slice(load_prompts(), args.start_id, args.max_prompts)
     print(f"Loaded {len(prompts)} prompts.")
 
     for model in args.models:
